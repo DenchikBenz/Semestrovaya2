@@ -8,6 +8,7 @@ import project.ui.GameScene;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
+import project.ui.MainMenuController;
 
 public class Main extends Application {
     private GameServer server;
@@ -21,7 +22,9 @@ public class Main extends Application {
         this.primaryStage = primaryStage;
         primaryStage.setTitle("Maze Game");
 
-        MainMenu mainMenu = new MainMenu(primaryStage, new MainMenu.GameModeCallback() {
+        // Загружаем MainMenu через FXML
+        MainMenu mainMenu = new MainMenu(primaryStage);
+        mainMenu.show(new MainMenuController.MenuCallback() {
             @Override
             public void onHostSelected() {
                 if (!isServerStarted) {
@@ -34,9 +37,8 @@ public class Main extends Application {
                 startClient();
             }
         });
-
-        mainMenu.show();
     }
+
 
     private void startServer() {
         // Создаем сцену с флагом isServer = true
