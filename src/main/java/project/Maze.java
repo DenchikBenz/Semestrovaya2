@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 public class Maze {
     private int[][]  grid;
-    private final static int CELL_SIZE = 32;
+    private final static int CELL_SIZE = 64;  // Устанавливаем 64
 
     public static final int PATH = 0;      // пол
     public static final int WALL_H = 1;    // горизонтальная стена
@@ -114,7 +114,9 @@ public class Maze {
     }
 
     public int getCellType(int x, int y) {
-        if (x < 0 || x >= width || y < 0 || y >= height) return -1;
+        if (x < 0 || x >= width || y < 0 || y >= height) {
+            return -1;  // За пределами лабиринта
+        }
         return grid[y][x];
     }
 

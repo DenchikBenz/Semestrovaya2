@@ -3,15 +3,20 @@ package project.ui;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import project.Maze;
 
 public class GameScene {
     private Stage stage;
     private Scene scene;
     private Canvas gameCanvas;
     private GraphicsContext gc;
+    private Maze maze;
+    private MazeSprites mazeSprites;
+
 
     // Размеры одной клетки лабиринта
     private final int CELL_SIZE = 40;
@@ -39,6 +44,8 @@ public class GameScene {
     public GameScene(Stage stage, boolean isServer) {
         this.stage = stage;
         this.isServer = isServer;
+        this.maze = new Maze();
+        this.mazeSprites = new MazeSprites();
         createGameScene();
     }
 
@@ -50,7 +57,7 @@ public class GameScene {
     private void createGameScene() {
         BorderPane root = new BorderPane();
 
-        gameCanvas = new Canvas(MAZE_WIDTH * CELL_SIZE, MAZE_HEIGHT * CELL_SIZE);
+        gameCanvas = new Canvas(maze.getWidth() * maze.getCellSize(), maze.getHeight() * maze.getCellSize());
         gc = gameCanvas.getGraphicsContext2D();
 
         root.setCenter(gameCanvas);
@@ -90,7 +97,7 @@ public class GameScene {
         double newX = playerX + dx;
         double newY = playerY + dy;
 
-        if (newX >= 0 && newX < MAZE_WIDTH && newY >= 0 && newY < MAZE_HEIGHT) {
+        if (newX >= 0 && newX < maze.getWidth() && newY >= 0 && newY < maze.getHeight()) {
             playerX = newX;
             playerY = newY;
 
@@ -117,17 +124,19 @@ public class GameScene {
     }
 
     private void drawMaze() {
-        gc.setStroke(Color.GRAY);
-        gc.setLineWidth(1);
-
-        // Рисуем вертикальные линии сетки
-        for (int x = 0; x <= MAZE_WIDTH; x++) {
-            gc.strokeLine(x * CELL_SIZE, 0, x * CELL_SIZE, MAZE_HEIGHT * CELL_SIZE);
-        }
-
-        // Рисуем горизонтальные линии сетки
-        for (int y = 0; y <= MAZE_HEIGHT; y++) {
-            gc.strokeLine(0, y * CELL_SIZE, MAZE_WIDTH * CELL_SIZE, y * CELL_SIZE);
+        for (int y = 0; y < maze.getHeight(); y++) {
+            for (int x = 0; x < maze.getWidth(); x++) {
+                int cellType = maze.getCellType(x, y);
+                Image sprite = mazeSprites.getSpriteForType(cellType);
+                if (sprite != null) {
+                    // Отрисовываем спрайт с масштабированием до размера ячейки
+                    gc.drawImage(sprite,
+                            x * maze.getCellSize(),
+                            y * maze.getCellSize(),
+                            maze.getCellSize(),  // Ширина ячейки
+                            maze.getCellSize()); // Высота ячейки
+                }
+            }
         }
     }
 
@@ -137,37 +146,37 @@ public class GameScene {
             // Свой игрок (сервер)
             gc.setFill(Color.RED);
             gc.fillOval(
-                    playerX * CELL_SIZE + 5,
-                    playerY * CELL_SIZE + 5,
-                    CELL_SIZE - 10,
-                    CELL_SIZE - 10
+                    playerX * maze.getCellSize() + 10,
+                    playerY * maze.getCellSize() + 10,
+                    maze.getCellSize() - 20,
+                    maze.getCellSize() - 20
             );
 
             // Другой игрок (клиент)
             gc.setFill(Color.BLUE);
             gc.fillOval(
-                    otherPlayerX * CELL_SIZE + 5,
-                    otherPlayerY * CELL_SIZE + 5,
-                    CELL_SIZE - 10,
-                    CELL_SIZE - 10
+                    otherPlayerX * maze.getCellSize() + 10,
+                    otherPlayerY * maze.getCellSize() + 10,
+                    maze.getCellSize() - 20,
+                    maze.getCellSize() - 20
             );
         } else {
             // Свой игрок (клиент)
             gc.setFill(Color.BLUE);
             gc.fillOval(
-                    playerX * CELL_SIZE + 5,
-                    playerY * CELL_SIZE + 5,
-                    CELL_SIZE - 10,
-                    CELL_SIZE - 10
+                    playerX * maze.getCellSize() + 10,
+                    playerY * maze.getCellSize() + 10,
+                    maze.getCellSize() - 20,
+                    maze.getCellSize() - 20
             );
 
             // Другой игрок (сервер)
             gc.setFill(Color.RED);
             gc.fillOval(
-                    otherPlayerX * CELL_SIZE + 5,
-                    otherPlayerY * CELL_SIZE + 5,
-                    CELL_SIZE - 10,
-                    CELL_SIZE - 10
+                    otherPlayerX * maze.getCellSize() + 10,
+                    otherPlayerY * maze.getCellSize() + 10,
+                    maze.getCellSize() - 20,
+                    maze.getCellSize() - 20
             );
         }
     }
