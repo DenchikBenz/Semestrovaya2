@@ -16,9 +16,8 @@ public class GameServer {
     private boolean isRunning;
     private GameScene gameScene;
 
-    // Состояние игры
-    private double[] serverPosition = {1, 1};  // позиция сервера
-    private double[] clientPosition = {1, 1};  // позиция клиента
+    private double[] serverPosition = {1, 1};
+    private double[] clientPosition = {1, 1};
     private boolean gameStarted = false;
 
     public GameServer() {
@@ -147,8 +146,6 @@ public class GameServer {
                 NetworkMessage.MessageType.GAME_STATE,
                 state
         ));
-        System.out.println("Server: Sent game state - Server at: " + serverPosition[0] + "," + serverPosition[1]
-                + " Client at: " + clientPosition[0] + "," + clientPosition[1]);
     }
 
     public void sendMessage(NetworkMessage message) {

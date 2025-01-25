@@ -13,12 +13,12 @@ public class GameClient {
     private boolean isConnected;
     private Thread listenThread;
 
-    // Добавляем интерфейс для обработчика сообщений
+
     public interface MessageHandler {
         void handleMessage(NetworkMessage message);
     }
 
-    // Добавляем поле для хранения обработчика
+
     private MessageHandler messageHandler;
 
     public GameClient() {
@@ -37,7 +37,6 @@ public class GameClient {
         }
     }
 
-    // Остальной код остается без изменений
     public boolean connect() {
         try {
             System.out.println("Trying to connect to server on port " + PORT);
@@ -45,10 +44,8 @@ public class GameClient {
             System.out.println("Socket connected");
 
             out = new ObjectOutputStream(socket.getOutputStream());
-            System.out.println("Output stream created");
 
             in = new ObjectInputStream(socket.getInputStream());
-            System.out.println("Input stream created");
 
             isConnected = true;
 

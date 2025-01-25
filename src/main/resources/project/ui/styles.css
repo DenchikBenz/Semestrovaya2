@@ -1,0 +1,30 @@
+/* Стили для всех кнопок */
+.button {
+    -fx-background-color: linear-gradient(to bottom, #3498db, #2980b9); /* Градиент фона */
+    -fx-text-fill: white; /* Цвет текста */
+    -fx-font-size: 24px; /* Увеличенный размер шрифта */
+    -fx-padding: 15; /* Увеличенный отступ внутри кнопки */
+    -fx-min-width: 250px; /* Ширина кнопки */
+    -fx-min-height: 60px; /* Высота кнопки */
+    -fx-border-radius: 10; /* Больше скругление границ */
+    -fx-background-radius: 10; /* Больше скругление фона */
+    -fx-cursor: hand; /* Курсор-рука при наведении */
+}
+
+/* Эффект при наведении */
+.button:hover {
+    -fx-background-color: linear-gradient(to bottom, #2980b9, #1e6a8e);
+}
+
+/* Эффект нажатия */
+.button:pressed {
+    -fx-background-color: linear-gradient(to bottom, #1e6a8e, #145374);
+}
+
+/* Заголовок */
+.title-label {
+    -fx-font-size: 48px; /* Увеличенный шрифт */
+    -fx-text-fill: black;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
