@@ -26,10 +26,13 @@ public class Maze {
     private Point2D startPoint2;
     private Point2D finishPoint;
     private List<Point2D>leverPoints;
+    private boolean isDoorOpen;
     private int width;
     private int height;
 
     public Maze(){
+
+        isDoorOpen = false;
 
         int[][] mazeData = {
                 // Стартовая комната
@@ -94,10 +97,19 @@ public class Maze {
     public boolean isWall(int x, int y) {
         if (x < 0 || x >= width || y < 0 || y >= height) return true;
         int cell = grid[y][x];
+
+        if (cell == DOOR) {
+            return !isDoorOpen; // Закрытая дверь работает как стена
+        }
+
         return cell == WALL_H || cell == WALL_V ||
                 cell == CORNER_1 || cell == CORNER_2 ||
                 cell == CORNER_3 || cell == CORNER_4 ||
                 cell == DOOR;
+    }
+
+    public boolean isDoorOpen() {
+        return isDoorOpen;
     }
 
     public int getWallType(int x, int y) {
@@ -118,6 +130,12 @@ public class Maze {
             return -1;  // За пределами лабиринта
         }
         return grid[y][x];
+    }
+
+    public boolean canActivateLever(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return false;
+        int cellType = grid[y][x];
+        return cellType == LEVER_1 || cellType == LEVER_2;
     }
 
 }

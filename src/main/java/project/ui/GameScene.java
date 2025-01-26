@@ -97,7 +97,8 @@ public class GameScene {
         double newX = playerX + dx;
         double newY = playerY + dy;
 
-        if (newX >= 0 && newX < maze.getWidth() && newY >= 0 && newY < maze.getHeight()) {
+        if (newX >= 0 && newX < maze.getWidth() && newY >= 0 && newY < maze.getHeight()
+            && !maze.isWall((int)newX, (int)newY)) {
             playerX = newX;
             playerY = newY;
 
