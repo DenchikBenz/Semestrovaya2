@@ -1,6 +1,11 @@
 package project.client;
 
 import project.common.NetworkMessage;
+import project.common.LeverState;
+import project.common.GameState;
+import project.common.GameState.GameStateType;
+import project.ui.GameScene;
+import javafx.application.Platform;
 import java.io.*;
 import java.net.Socket;
 
@@ -12,12 +17,11 @@ public class GameClient {
     private final int PORT = 5004;
     private boolean isConnected;
     private Thread listenThread;
-
+    private GameScene gameScene;
 
     public interface MessageHandler {
         void handleMessage(NetworkMessage message);
     }
-
 
     private MessageHandler messageHandler;
 
@@ -35,6 +39,58 @@ public class GameClient {
         if (messageHandler != null) {
             messageHandler.handleMessage(message);
         }
+
+        // Обрабатываем сообщение локально
+        switch (message.getType()) {
+            case LEVER_INTERACTION:
+                if (gameScene != null) {
+                    LeverState leverState = (LeverState) message.getData();
+                    Platform.runLater(() -> {
+                        gameScene.updateOtherLeverState(
+                            leverState.getX(),
+                            leverState.getY(),
+                            leverState.isActive()
+                        );
+                    });
+                }
+                break;
+            case GAME_START:
+            case GAME_END:
+                if (gameScene != null) {
+                    GameState gameState = (GameState) message.getData();
+                    Platform.runLater(() -> {
+                        gameScene.updateGameState(
+                            gameState.getType(),
+                            gameState.isPlayerFinished()
+                        );
+                    });
+                }
+                break;
+        }
+    }
+
+    public void setGameScene(GameScene scene) {
+        this.gameScene = scene;
+        
+        // Устанавливаем обработчик событий рычага
+        scene.setLeverCallback((x, y, active) -> {
+            LeverState leverState = new LeverState(x, y, active);
+            NetworkMessage message = new NetworkMessage(
+                NetworkMessage.MessageType.LEVER_INTERACTION,
+                leverState
+            );
+            sendMessage(message);
+        });
+        
+        // Добавляем обработчик состояний игры
+        scene.setGameStateCallback((type, finished) -> {
+            GameState gameState = new GameState(type, finished);
+            NetworkMessage message = new NetworkMessage(
+                type == GameStateType.STARTED ? NetworkMessage.MessageType.GAME_START : NetworkMessage.MessageType.GAME_END,
+                gameState
+            );
+            sendMessage(message);
+        });
     }
 
     public boolean connect() {
@@ -109,5 +165,16 @@ public class GameClient {
 
     public boolean isConnected() {
         return isConnected;
+    }
+
+    public void start() {
+        connect();
+        if (isConnected) {
+            startListening();
+            // Отправляем сообщение о готовности
+            GameState gameState = new GameState(GameStateType.STARTED, false);
+            NetworkMessage message = new NetworkMessage(NetworkMessage.MessageType.GAME_START, gameState);
+            sendMessage(message);
+        }
     }
 }

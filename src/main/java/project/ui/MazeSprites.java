@@ -5,12 +5,21 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import project.Maze;
+import project.ui.Animation;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MazeSprites {
     private Map<Integer, Image> tileSprites = new HashMap<>();
+    private Map<String, Animation> animations = new HashMap<>();
+    private Map<Integer, Image> leverActiveSprites = new HashMap<>();
+    
+    // Константы для анимаций
+    public static final String PLAYER_RUN = "player_run";
+    public static final String PLAYER_IDLE = "player_idle";
 
     public MazeSprites() {
         try {
@@ -27,11 +36,22 @@ public class MazeSprites {
             e.printStackTrace();
         }
 
+        loadBasicSprites();
+        loadAnimations();
+    }
 
+    private void loadBasicSprites() {
         loadSprite(Maze.PATH, "sprites/Castle_stonefloor.png");
         loadSprite(Maze.WALL_H, "sprites/Castle_wallHorizontal.png");
         
-
+        // Загружаем неактивные рычаги (направлены влево)
+        loadSprite(Maze.LEVER_1, "sprites/resized_lever_left.png");
+        loadSprite(Maze.LEVER_2, "sprites/resized_lever_left.png");
+        
+        // Загружаем активные рычаги (направлены вправо) в отдельную карту
+        leverActiveSprites.put(Maze.LEVER_1, loadImage("sprites/resized_lever_right.png"));
+        leverActiveSprites.put(Maze.LEVER_2, loadImage("sprites/resized_lever_right.png"));
+        
         Image horizontalWall = tileSprites.get(Maze.WALL_H);
         if (horizontalWall != null) {
             tileSprites.put(Maze.WALL_V, rotateImage(horizontalWall));
@@ -42,17 +62,27 @@ public class MazeSprites {
         loadSprite(Maze.CORNER_3, "sprites/Castle_corner_bottom_left.png");
         loadSprite(Maze.CORNER_4, "sprites/Castle_corner_bottom_right.png");
         loadSprite(Maze.DOOR, "sprites/Castle_door.png");
-        loadSprite(Maze.LEVER_1, "sprites/resized_lever_left.png");
-        loadSprite(Maze.LEVER_2, "sprites/resized_lever_right.png");
-
-        Image floorSprite = tileSprites.get(Maze.PATH);
-        if (floorSprite != null) {
-            tileSprites.put(Maze.START_1, floorSprite);
-            tileSprites.put(Maze.START_2, floorSprite);
-            tileSprites.put(Maze.FINISH, floorSprite);
-        }
+        loadSprite(Maze.START_1, "sprites/Castle_stonefloor.png");
+        loadSprite(Maze.START_2, "sprites/Castle_stonefloor.png");
+        loadSprite(Maze.FINISH, "sprites/Castle_stonefloor.png");
         
         System.out.println("Loaded " + tileSprites.size() + " sprites");
+    }
+
+    private void loadAnimations() {
+        // Загружаем кадры анимации бега
+        List<Image> runFrames = new ArrayList<>();
+        for (int i = 0; i <= 3; i++) {
+            loadAnimationFrame(runFrames, "sprites/knight_f_run_anim_f" + i + ".png");
+        }
+        animations.put(PLAYER_RUN, new Animation(runFrames, 90));
+        
+        // Загружаем кадры анимации покоя
+        List<Image> idleFrames = new ArrayList<>();
+        for (int i = 0; i <= 3; i++) {
+            loadAnimationFrame(idleFrames, "sprites/knight_f_idle_anim_f" + i + ".png");
+        }
+        animations.put(PLAYER_IDLE, new Animation(idleFrames, 160));
     }
 
     private Image rotateImage(Image source) {
@@ -99,11 +129,72 @@ public class MazeSprites {
         }
     }
 
-    public Image getSpriteForType(int type) {
-        Image sprite = tileSprites.get(type);
-        if (sprite == null) {
-            System.err.println("No sprite found for type: " + type);
+    private Image loadImage(String path) {
+        try {
+            System.out.println("Loading image: " + path);
+            var stream = getClass().getClassLoader().getResourceAsStream(path);
+            
+            if (stream == null) {
+                System.err.println("Resource stream is null for: " + path);
+                return null;
+            }
+            
+            Image image = new Image(stream);
+            if (image.isError()) {
+                System.err.println("Error loading image: " + image.getException().getMessage());
+                return null;
+            }
+            
+            System.out.println("Successfully loaded image: " + path);
+            return image;
+        } catch (Exception e) {
+            System.err.println("Failed to load image: " + path);
+            e.printStackTrace();
+            return null;
         }
-        return sprite;
+    }
+
+    private void loadAnimationFrame(List<Image> frames, String path) {
+        try {
+            System.out.println("Loading animation frame: " + path);
+            var stream = getClass().getClassLoader().getResourceAsStream(path);
+            
+            if (stream == null) {
+                System.err.println("Resource stream is null for: " + path);
+                return;
+            }
+            
+            Image frame = new Image(stream);
+            if (frame.isError()) {
+                System.err.println("Error loading image: " + frame.getException().getMessage());
+                return;
+            }
+            
+            frames.add(frame);
+            System.out.println("Successfully loaded animation frame: " + path);
+        } catch (Exception e) {
+            System.err.println("Failed to load animation frame: " + path);
+            e.printStackTrace();
+        }
+    }
+
+    public Image getSpriteForType(int type) {
+        return tileSprites.get(type);
+    }
+
+    public Image getSprite(int type) {
+        return tileSprites.get(type);
+    }
+
+    public Animation getAnimation(String animationKey) {
+        return animations.get(animationKey);
+    }
+
+    public Image getLeverSprite(int leverType, boolean isActive) {
+        if (isActive) {
+            return leverActiveSprites.get(leverType);
+        } else {
+            return tileSprites.get(leverType);
+        }
     }
 }

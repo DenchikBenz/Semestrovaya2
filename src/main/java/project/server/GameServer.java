@@ -1,5 +1,6 @@
 package project.server;
 
+import project.common.LeverState;
 import project.common.NetworkMessage;
 import project.ui.GameScene;
 import javafx.application.Platform;
@@ -102,6 +103,16 @@ public class GameServer {
                 break;
 
             case LEVER_INTERACTION:
+                LeverState leverState = (LeverState) message.getData();
+                if (gameScene != null) {
+                    Platform.runLater(() -> {
+                        gameScene.updateOtherLeverState(
+                                leverState.getX(),
+                                leverState.getY(),
+                                leverState.isActive()
+                        );
+                    });
+                }
                 sendMessage(message);
                 break;
 

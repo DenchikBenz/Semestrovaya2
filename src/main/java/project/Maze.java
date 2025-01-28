@@ -26,6 +26,8 @@ public class Maze {
     private Point2D startPoint2;
     private Point2D finishPoint;
     private List<Point2D>leverPoints;
+    private boolean lever1Active = false;
+    private boolean lever2Active = false;
     private boolean isDoorOpen;
     private int width;
     private int height;
@@ -85,14 +87,67 @@ public class Maze {
         }
     }
 
-    public Point2D getStartPoint1() { return startPoint1; }
-    public Point2D getStartPoint2() { return startPoint2; }
-    public Point2D getFinishPoint() { return finishPoint; }
-    public List<Point2D> getLeverPoints() { return new ArrayList<>(leverPoints); }
-    public int getWidth() { return width; }
-    public int getHeight() { return height; }
-    public int getCellSize() { return CELL_SIZE; }
+    public void setLeverState(int x, int y, boolean active) {
+        int leverType = getLeverTypeAt(x, y);
+        if (leverType == LEVER_1) {
+            lever1Active = active;
+        } else if (leverType == LEVER_2) {
+            lever2Active = active;
+        }
 
+        // Дверь открывается только когда оба рычага активированы
+        isDoorOpen = lever1Active && lever2Active;
+    }
+
+    public boolean isDoorOpen() {
+        return isDoorOpen;
+    }
+
+    public Point2D getStartPoint1() {
+        return startPoint1;
+    }
+
+    public Point2D getStartPoint2() {
+        return startPoint2;
+    }
+
+    public Point2D getFinishPoint() {
+        return finishPoint;
+    }
+
+    public List<Point2D> getLeverPoints() {
+        return new ArrayList<>(leverPoints);
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public int getCellSize() {
+        return CELL_SIZE;
+    }
+
+    public boolean isLever1Active() {
+        return lever1Active;
+    }
+
+    public boolean isLever2Active() {
+        return lever2Active;
+    }
+
+    public boolean getLeverState(int x, int y) {
+        int leverType = grid[y][x];
+        if (leverType == LEVER_1) {
+            return lever1Active;
+        } else if (leverType == LEVER_2) {
+            return lever2Active;
+        }
+        return false;
+    }
 
     public boolean isWall(int x, int y) {
         if (x < 0 || x >= width || y < 0 || y >= height) return true;
@@ -108,9 +163,6 @@ public class Maze {
                 cell == DOOR;
     }
 
-    public boolean isDoorOpen() {
-        return isDoorOpen;
-    }
 
     public int getWallType(int x, int y) {
         if (x < 0 || x >= width || y < 0 || y >= height) return WALL_H;
@@ -136,6 +188,15 @@ public class Maze {
         if (x < 0 || x >= width || y < 0 || y >= height) return false;
         int cellType = grid[y][x];
         return cellType == LEVER_1 || cellType == LEVER_2;
+    }
+
+    public int getLeverTypeAt(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return -1;
+        int cellType = grid[y][x];
+        if (cellType == LEVER_1 || cellType == LEVER_2) {
+            return cellType;
+        }
+        return -1;
     }
 
 }
