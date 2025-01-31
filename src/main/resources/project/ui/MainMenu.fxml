@@ -7,18 +7,15 @@
             fx:controller="project.ui.MainMenuController"
             stylesheets="@styles.css">
     <children>
-        <!-- Заголовок -->
         <Label text="Maze Game"
                layoutX="275" layoutY="50"
         styleClass="title-label" />
 
-        <!-- Кнопка Host Game -->
         <Button fx:id="hostButton"
                 text="Host Game"
                 layoutX="275" layoutY="150"
         />
 
-        <!-- Кнопка Join Game -->
         <Button fx:id="joinButton"
                 text="Join Game"
                 layoutX="275" layoutY="240"

@@ -15,15 +15,12 @@ public class MainMenu {
 
     public void show(MainMenuController.MenuCallback callback) {
         try {
-            // Загрузка FXML
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/project/ui/MainMenu.fxml"));
             Parent root = loader.load();
 
-            // Получение контроллера
             controller = loader.getController();
             controller.setCallback(callback);
 
-            // Установка сцены
             Scene scene = new Scene(root, 800, 600);
             stage.setScene(scene);
             stage.show();

@@ -9,8 +9,8 @@ public class GameState implements Serializable {
     private boolean playerFinished;
     
     public enum GameStateType {
-        STARTED,    // Игра началась (оба игрока подключены)
-        FINISHED    // Игрок достиг финиша
+        STARTED,
+        FINISHED
     }
     
     public GameState(GameStateType type, boolean playerFinished) {

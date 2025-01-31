@@ -31,12 +31,9 @@ public class GameServer {
 
     public void start() {
         try {
-            System.out.println("Starting server on port " + PORT);
             serverSocket = new ServerSocket(PORT);
             isRunning = true;
-            System.out.println("Server started successfully");
 
-            System.out.println("Waiting for client...");
             waitForClient();
 
         } catch (IOException e) {
@@ -47,27 +44,16 @@ public class GameServer {
 
     private void waitForClient() {
         try {
-            System.out.println("Waiting for client...");
             clientSocket = serverSocket.accept();
-            System.out.println("Client connected: " + clientSocket.getInetAddress());
-
             out = new ObjectOutputStream(clientSocket.getOutputStream());
             in = new ObjectInputStream(clientSocket.getInputStream());
-
-            // Отправляем подтверждение подключения
             sendMessage(new NetworkMessage(NetworkMessage.MessageType.CONNECT_ACCEPTED, null));
-
-            // Отправляем начальное состояние игры
             sendGameState();
-
-            // Начинаем игру
             gameStarted = true;
             sendMessage(new NetworkMessage(NetworkMessage.MessageType.GAME_START, null));
-
             handleMessages();
 
         } catch (IOException e) {
-            System.err.println("Accept failed on port " + PORT);
             e.printStackTrace();
         }
     }
@@ -78,7 +64,7 @@ public class GameServer {
                 NetworkMessage message = (NetworkMessage) in.readObject();
                 handleMessage(message);
             } catch (IOException | ClassNotFoundException e) {
-                System.err.println("Error handling message");
+                System.err.println("Error");
                 stop();
                 break;
             }
@@ -89,12 +75,10 @@ public class GameServer {
         System.out.println("Server received message: " + message.getType());
         switch (message.getType()) {
             case CONNECT:
-                System.out.println("Client connected");
                 sendGameState();
                 break;
 
             case DISCONNECT:
-                System.out.println("Client disconnected");
                 stop();
                 break;
 
@@ -117,7 +101,7 @@ public class GameServer {
                 break;
 
             default:
-                System.out.println("Received unknown message type: " + message.getType());
+                System.out.println("Error" + message.getType());
         }
     }
 
@@ -125,29 +109,21 @@ public class GameServer {
         if (!gameStarted) return;
 
         double[] newPosition = (double[]) message.getData();
-        System.out.println("Server: Handling player move: " + newPosition[0] + ", " + newPosition[1]);
-
-        // Обновляем позицию клиента
         clientPosition[0] = newPosition[0];
         clientPosition[1] = newPosition[1];
 
-        // Обновляем UI для отображения клиента
         if (gameScene != null) {
             Platform.runLater(() -> {
                 gameScene.updateOtherPlayerPosition(clientPosition[0], clientPosition[1]);
-                System.out.println("Server: Updated client position in UI");
             });
         }
 
-        // Отправляем обновленное состояние игры
         sendGameState();
     }
 
     public void updateServerPosition(double x, double y) {
-        System.out.println("Server: Updating server position to " + x + ", " + y);
         serverPosition[0] = x;
         serverPosition[1] = y;
-        // При изменении позиции сервера отправляем обновление клиенту
         sendGameState();
     }
 
@@ -162,7 +138,6 @@ public class GameServer {
     public void sendMessage(NetworkMessage message) {
         try {
             if (out != null) {
-                System.out.println("Server: Sending message type: " + message.getType());
                 out.writeObject(message);
                 out.flush();
             }

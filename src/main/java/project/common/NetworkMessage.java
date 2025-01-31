@@ -9,28 +9,24 @@ public class NetworkMessage implements Serializable {
     private Object data;
 
     public enum MessageType {
-        // Сообщения подключения/отключения
-        CONNECT,              // запрос на подключение
-        CONNECT_ACCEPTED,     // подтверждение подключения
-        DISCONNECT,           // отключение игрока
+        CONNECT,
+        CONNECT_ACCEPTED,
+        DISCONNECT,
 
-        // Сообщения состояния игры
-        GAME_START,          // начало игры (когда оба игрока готовы)
-        GAME_END,            // завершение игры (достигнут финиш)
-        GAME_STATE,          // обновление состояния игры
 
-        // Игровые действия
-        PLAYER_MOVE,         // движение игрока
-        LEVER_INTERACTION    // взаимодействие с рычагом
+        GAME_START,
+        GAME_END,
+        GAME_STATE,
+
+        PLAYER_MOVE,
+        LEVER_INTERACTION
     }
 
-    // Конструктор
     public NetworkMessage(MessageType type, Object data) {
         this.type = type;
         this.data = data;
     }
 
-    // Геттеры
     public MessageType getType() {
         return type;
     }

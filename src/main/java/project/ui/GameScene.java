@@ -1,15 +1,22 @@
 package project.ui;
 
 import javafx.animation.AnimationTimer;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Alert;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.application.Platform;
+import javafx.geometry.Pos;
+import javafx.util.Duration;
 import project.Maze;
 import project.common.GameState;
 import project.common.GameState.GameStateType;
@@ -21,40 +28,29 @@ public class GameScene {
     private GraphicsContext gc;
     private Maze maze;
     private MazeSprites mazeSprites;
-
-    // Размеры одной клетки лабиринта
-    private final int CELL_SIZE = 40;
-    // Размеры поля (в клетках)
-    private final int MAZE_WIDTH = 15;
-    private final int MAZE_HEIGHT = 15;
-
-    // Позиции игроков
+    private StackPane root;
+    private VBox messageOverlay;
+    private Timeline fadeOutTimeline;
     private double playerX = 1;
     private double playerY = 1;
     private double otherPlayerX = 1;
     private double otherPlayerY = 1;
-
-    // Флаг для определения, является ли это сервером
     private boolean isServer;
 
-    // Добавляем интерфейс для обработчика движения
     public interface PlayerMoveCallback {
         void onPlayerMove(double x, double y);
     }
 
-    // Новый интерфейс для событий рычага
     public interface LeverCallback {
         void onLeverStateChange(int x, int y, boolean active);
     }
 
-    // Добавляем новый интерфейс для уведомлений о состоянии игры
     public interface GameStateCallback {
         void onGameStateChanged(GameStateType type, boolean finished);
     }
     
-    // Добавляем поле для хранения обработчика
     private PlayerMoveCallback moveCallback;
-    private LeverCallback leverCallback;  // Добавляем колбэк для рычага
+    private LeverCallback leverCallback;
     private GameStateCallback gameStateCallback;
     private boolean playerFinished = false;
     private boolean otherPlayerFinished = false;
@@ -74,12 +70,10 @@ public class GameScene {
         setupGameLoop();
     }
 
-    // Добавляем метод установки обработчика движения
     public void setOnPlayerMove(PlayerMoveCallback callback) {
         this.moveCallback = callback;
     }
 
-    // Метод установки колбэка для рычага
     public void setLeverCallback(LeverCallback callback) {
         this.leverCallback = callback;
     }
@@ -88,16 +82,23 @@ public class GameScene {
         this.gameStateCallback = callback;
     }
     
-    // Метод обновления состояния рычага другого игрока
     public void updateOtherLeverState(int x, int y, boolean active) {
+        System.out.println("Updating other player's lever state: " + x + "," + y + " = " + active);
+        boolean previousState = maze.getLeverState(x, y);
         maze.setLeverState(x, y, active);
+        
+        if (active) {
+            showGameMessage("Второй игрок активировал рычаг!");
+        } else if (previousState) {
+            showGameMessage("Время истекло! Рычаги сброшены!");
+        }
+        
         draw();
     }
 
     public void updateGameState(GameStateType type, boolean otherFinished) {
         Platform.runLater(() -> {
             if (type == GameStateType.STARTED) {
-                showAlert("Игра началась", "Второй игрок подключился. Игра началась!");
             } else if (type == GameStateType.FINISHED) {
                 this.otherPlayerFinished = otherFinished;
                 checkGameEnd();
@@ -106,16 +107,56 @@ public class GameScene {
     }
 
     private void createGameScene() {
-        BorderPane root = new BorderPane();
-
+        root = new StackPane();
+        
+        BorderPane gameArea = new BorderPane();
         gameCanvas = new Canvas(maze.getWidth() * maze.getCellSize(), maze.getHeight() * maze.getCellSize());
         gc = gameCanvas.getGraphicsContext2D();
-
-        root.setCenter(gameCanvas);
-
+        gameArea.setCenter(gameCanvas);
+        
+        messageOverlay = new VBox(10);
+        messageOverlay.setAlignment(Pos.CENTER); 
+        messageOverlay.setMouseTransparent(true);
+        messageOverlay.setVisible(false);
+        messageOverlay.setStyle("-fx-padding: 20px;");
+        
+        root.getChildren().addAll(gameArea, messageOverlay);
+        
         scene = new Scene(root);
-
+        
         draw();
+    }
+
+    public void showGameMessage(String message) {
+        Platform.runLater(() -> {
+            Label messageLabel = new Label(message);
+            messageLabel.setStyle(
+                "-fx-background-color: rgba(0,0,0,0.7);" +
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 24px;" + 
+                "-fx-padding: 15px 30px;" + 
+                "-fx-background-radius: 10px;" + 
+                "-fx-text-alignment: center;" 
+            );
+            
+            messageOverlay.getChildren().setAll(messageLabel);
+            messageOverlay.setVisible(true);
+            messageOverlay.setOpacity(0); 
+            
+            if (fadeOutTimeline != null) {
+                fadeOutTimeline.stop();
+            }
+            
+            fadeOutTimeline = new Timeline(
+                new KeyFrame(Duration.ZERO, new KeyValue(messageOverlay.opacityProperty(), 0)),
+                new KeyFrame(Duration.seconds(0.5), new KeyValue(messageOverlay.opacityProperty(), 1)), 
+                new KeyFrame(Duration.seconds(2.5), new KeyValue(messageOverlay.opacityProperty(), 1)), 
+                new KeyFrame(Duration.seconds(3), new KeyValue(messageOverlay.opacityProperty(), 0)) 
+            );
+            
+            fadeOutTimeline.setOnFinished(event -> messageOverlay.setVisible(false));
+            fadeOutTimeline.play();
+        });
     }
 
     private void setupKeyHandling() {
@@ -138,18 +179,7 @@ public class GameScene {
                     movePlayer(1, 0);
                     break;
                 case E:
-                    // Проверяем, стоит ли игрок на рычаге
-                    if (maze.canActivateLever((int)playerX, (int)playerY)) {
-                        // Переключаем состояние рычага
-                        boolean currentState = maze.getLeverState((int)playerX, (int)playerY);
-                        maze.setLeverState((int)playerX, (int)playerY, !currentState);
-                        
-                        // Уведомляем другого игрока только через leverCallback
-                        if (leverCallback != null) {
-                            leverCallback.onLeverStateChange((int)playerX, (int)playerY, !currentState);
-                        }
-                        draw();
-                    }
+                    handleLeverActivation((int)playerX, (int)playerY);
                     break;
             }
         });
@@ -159,7 +189,6 @@ public class GameScene {
     private void movePlayer(int dx, int dy) {
         if (maze.isWall((int)(playerX + dx), (int)(playerY + dy))) return;
 
-        // Обновляем анимацию при движении
         if (dx != 0 || dy != 0) {
             currentPlayerAnimation = MazeSprites.PLAYER_RUN;
             isMoving = true;
@@ -168,8 +197,33 @@ public class GameScene {
         playerX += dx;
         playerY += dy;
 
+        if (maze.getCellType((int)playerX, (int)playerY) == Maze.FINISH && !playerFinished) {
+            playerFinished = true;
+            System.out.println("Player reached finish!");
+            if (gameStateCallback != null) {
+                gameStateCallback.onGameStateChanged(GameStateType.FINISHED, true);
+            }
+            showGameMessage("Вы достигли финиша!");
+            checkGameEnd();
+        }
+
         if (moveCallback != null) {
             moveCallback.onPlayerMove(playerX, playerY);
+        }
+    }
+
+    private void handleLeverActivation(int x, int y) {
+        if (maze.canActivateLever(x, y)) {
+            boolean currentState = maze.getLeverState(x, y);
+            maze.setLeverState(x, y, !currentState);
+            
+            if (!currentState) {
+                showGameMessage("Рычаг активирован! У второго игрока есть 2 секунды!");
+            }
+            
+            if (leverCallback != null) {
+                leverCallback.onLeverStateChange(x, y, !currentState);
+            }
         }
     }
 
@@ -182,19 +236,15 @@ public class GameScene {
     private void draw() {
         gc.clearRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
         
-        // Отрисовка лабиринта
         for (int y = 0; y < maze.getHeight(); y++) {
             for (int x = 0; x < maze.getWidth(); x++) {
                 int cellType = maze.getCellType(x, y);
                 Image sprite;
                 
-                // Для двери проверяем состояние
                 if (cellType == Maze.DOOR) {
                     sprite = maze.isDoorOpen() ? mazeSprites.getSprite(Maze.PATH) : mazeSprites.getSprite(Maze.DOOR);
                 }
-                // Для рычагов проверяем состояние
                 else if (cellType == Maze.LEVER_1 || cellType == Maze.LEVER_2) {
-                    // Сначала рисуем пол под рычагом
                     Image floorSprite = mazeSprites.getSprite(Maze.PATH);
                     if (floorSprite != null) {
                         gc.drawImage(floorSprite, 
@@ -205,7 +255,6 @@ public class GameScene {
                         );
                     }
                     
-                    // Теперь рисуем рычаг в нужном состоянии
                     boolean isActive = maze.getLeverState(x, y);
                     sprite = mazeSprites.getLeverSprite(cellType, isActive);
                 }
@@ -224,7 +273,6 @@ public class GameScene {
             }
         }
 
-        // Отрисовка игроков
         project.ui.Animation playerAnim = mazeSprites.getAnimation(currentPlayerAnimation);
         if (playerAnim != null) {
             Image playerSprite = playerAnim.getCurrentFrame();
@@ -244,7 +292,6 @@ public class GameScene {
             }
         }
 
-        // Сбрасываем флаг движения и анимацию
         if (isMoving) {
             isMoving = false;
             currentPlayerAnimation = MazeSprites.PLAYER_IDLE;
@@ -270,18 +317,11 @@ public class GameScene {
         stage.show();
     }
 
-    private void showAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
+    
 
     private void checkGameEnd() {
         if (playerFinished && otherPlayerFinished) {
-            if (gameStateCallback != null) {
-                gameStateCallback.onGameStateChanged(GameStateType.FINISHED, true);
-            }
+            showGameMessage("Поздравляем! Оба игрока достигли финиша!");
         }
     }
 }

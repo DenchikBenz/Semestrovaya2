@@ -11,7 +11,6 @@ public class MainMenuController {
 
     private MenuCallback callback;
 
-    // Интерфейс для обработки действий
     public interface MenuCallback {
         void onHostSelected();
         void onJoinSelected();
@@ -23,7 +22,6 @@ public class MainMenuController {
 
     @FXML
     public void initialize() {
-        // Обработка кнопок
         hostButton.setOnAction(event -> {
             if (callback != null) {
                 callback.onHostSelected();

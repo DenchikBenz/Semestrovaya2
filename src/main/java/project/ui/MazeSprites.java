@@ -5,7 +5,6 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import project.Maze;
-import project.ui.Animation;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,7 +16,6 @@ public class MazeSprites {
     private Map<String, Animation> animations = new HashMap<>();
     private Map<Integer, Image> leverActiveSprites = new HashMap<>();
     
-    // Константы для анимаций
     public static final String PLAYER_RUN = "player_run";
     public static final String PLAYER_IDLE = "player_idle";
 
@@ -44,11 +42,9 @@ public class MazeSprites {
         loadSprite(Maze.PATH, "sprites/Castle_stonefloor.png");
         loadSprite(Maze.WALL_H, "sprites/Castle_wallHorizontal.png");
         
-        // Загружаем неактивные рычаги (направлены влево)
         loadSprite(Maze.LEVER_1, "sprites/resized_lever_left.png");
         loadSprite(Maze.LEVER_2, "sprites/resized_lever_left.png");
         
-        // Загружаем активные рычаги (направлены вправо) в отдельную карту
         leverActiveSprites.put(Maze.LEVER_1, loadImage("sprites/resized_lever_right.png"));
         leverActiveSprites.put(Maze.LEVER_2, loadImage("sprites/resized_lever_right.png"));
         
@@ -70,14 +66,12 @@ public class MazeSprites {
     }
 
     private void loadAnimations() {
-        // Загружаем кадры анимации бега
         List<Image> runFrames = new ArrayList<>();
         for (int i = 0; i <= 3; i++) {
             loadAnimationFrame(runFrames, "sprites/knight_f_run_anim_f" + i + ".png");
         }
         animations.put(PLAYER_RUN, new Animation(runFrames, 90));
         
-        // Загружаем кадры анимации покоя
         List<Image> idleFrames = new ArrayList<>();
         for (int i = 0; i <= 3; i++) {
             loadAnimationFrame(idleFrames, "sprites/knight_f_idle_anim_f" + i + ".png");
@@ -92,7 +86,6 @@ public class MazeSprites {
         Canvas canvas = new Canvas(height, width);
         GraphicsContext gc = canvas.getGraphicsContext2D();
         
-        // Поворачиваем на 90 градусов
         gc.translate(height/2, width/2);
         gc.rotate(90);
         gc.translate(-width/2, -height/2);

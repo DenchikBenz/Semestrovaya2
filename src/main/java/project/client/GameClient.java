@@ -6,6 +6,7 @@ import project.common.GameState;
 import project.common.GameState.GameStateType;
 import project.ui.GameScene;
 import javafx.application.Platform;
+import javafx.scene.control.Alert;
 import java.io.*;
 import java.net.Socket;
 
@@ -13,7 +14,7 @@ public class GameClient {
     private Socket socket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
-    private final String HOST = "localhost";
+    private final String HOST = "192.168.100.88";
     private final int PORT = 5004;
     private boolean isConnected;
     private Thread listenThread;
@@ -29,19 +30,30 @@ public class GameClient {
         isConnected = false;
     }
 
-    // Добавляем метод установки обработчика
     public void setMessageHandler(MessageHandler handler) {
         this.messageHandler = handler;
     }
 
-    // Обновляем метод handleMessage для использования обработчика
     private void handleMessage(NetworkMessage message) {
         if (messageHandler != null) {
             messageHandler.handleMessage(message);
         }
 
-        // Обрабатываем сообщение локально
+        System.out.println("Client received message: " + message.getType());
+
         switch (message.getType()) {
+            case CONNECT_ACCEPTED:
+                if (gameScene != null) {
+                    Platform.runLater(() -> {
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                        alert.setTitle("Подключение");
+                        alert.setHeaderText(null);
+                        alert.setContentText("Второй игрок подключился. Игра началась!");
+                        alert.showAndWait();
+                    });
+                }
+                break;
+                
             case LEVER_INTERACTION:
                 if (gameScene != null) {
                     LeverState leverState = (LeverState) message.getData();
@@ -52,6 +64,8 @@ public class GameClient {
                             leverState.isActive()
                         );
                     });
+                } else {
+                    System.out.println("GameScene is null!");
                 }
                 break;
             case GAME_START:
@@ -72,7 +86,6 @@ public class GameClient {
     public void setGameScene(GameScene scene) {
         this.gameScene = scene;
         
-        // Устанавливаем обработчик событий рычага
         scene.setLeverCallback((x, y, active) -> {
             LeverState leverState = new LeverState(x, y, active);
             NetworkMessage message = new NetworkMessage(
@@ -82,7 +95,6 @@ public class GameClient {
             sendMessage(message);
         });
         
-        // Добавляем обработчик состояний игры
         scene.setGameStateCallback((type, finished) -> {
             GameState gameState = new GameState(type, finished);
             NetworkMessage message = new NetworkMessage(
@@ -95,27 +107,15 @@ public class GameClient {
 
     public boolean connect() {
         try {
-            System.out.println("Trying to connect to server on port " + PORT);
             socket = new Socket(HOST, PORT);
-            System.out.println("Socket connected");
-
             out = new ObjectOutputStream(socket.getOutputStream());
-
             in = new ObjectInputStream(socket.getInputStream());
-
             isConnected = true;
-
-            System.out.println("Sending CONNECT message");
             sendMessage(new NetworkMessage(NetworkMessage.MessageType.CONNECT, null));
-
-            System.out.println("Starting listening thread");
             startListening();
-
-            System.out.println("Connected to server successfully");
             return true;
 
         } catch (IOException e) {
-            System.err.println("Connection failed: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -128,7 +128,6 @@ public class GameClient {
                     NetworkMessage message = (NetworkMessage) in.readObject();
                     handleMessage(message);
                 } catch (IOException | ClassNotFoundException e) {
-                    System.err.println("Error receiving message");
                     disconnect();
                     break;
                 }
@@ -142,7 +141,6 @@ public class GameClient {
             out.writeObject(message);
             out.flush();
         } catch (IOException e) {
-            System.err.println("Error sending message");
             e.printStackTrace();
         }
     }
@@ -158,23 +156,8 @@ public class GameClient {
                 socket.close();
             }
         } catch (IOException e) {
-            System.err.println("Error disconnecting");
             e.printStackTrace();
         }
     }
 
-    public boolean isConnected() {
-        return isConnected;
-    }
-
-    public void start() {
-        connect();
-        if (isConnected) {
-            startListening();
-            // Отправляем сообщение о готовности
-            GameState gameState = new GameState(GameStateType.STARTED, false);
-            NetworkMessage message = new NetworkMessage(NetworkMessage.MessageType.GAME_START, gameState);
-            sendMessage(message);
-        }
-    }
 }

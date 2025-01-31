@@ -1,7 +1,9 @@
 package project;
 
 import project.client.GameClient;
+import project.common.GameState;
 import project.common.NetworkMessage;
+import project.common.LeverState;
 import project.server.GameServer;
 import project.ui.MainMenu;
 import project.ui.GameScene;
@@ -22,7 +24,6 @@ public class Main extends Application {
         this.primaryStage = primaryStage;
         primaryStage.setTitle("Maze Game");
 
-        // Загружаем MainMenu через FXML
         MainMenu mainMenu = new MainMenu(primaryStage);
         mainMenu.show(new MainMenuController.MenuCallback() {
             @Override
@@ -41,20 +42,14 @@ public class Main extends Application {
 
 
     private void startServer() {
-        // Создаем сцену с флагом isServer = true
         gameScene = new GameScene(primaryStage, true);
 
-        // Создаем сервер и устанавливаем GameScene
         server = new GameServer();
         server.setGameScene(gameScene);
 
-        // Добавляем обработчик движения для сервера
         gameScene.setOnPlayerMove((x, y) -> {
             if (server != null) {
-                System.out.println("Server: Player moved to " + x + ", " + y);
-                // Обновляем позицию на сервере
                 server.updateServerPosition(x, y);
-                // Отправляем новую позицию клиенту
                 server.sendMessage(new NetworkMessage(
                         NetworkMessage.MessageType.PLAYER_MOVE,
                         new double[]{x, y}
@@ -62,27 +57,30 @@ public class Main extends Application {
             }
         });
 
-        // Показываем игровую сцену
+        gameScene.setLeverCallback((x, y, state) -> {
+            if (server != null) {
+                server.sendMessage(new NetworkMessage(
+                    NetworkMessage.MessageType.LEVER_INTERACTION,
+                    new LeverState(x, y, state)
+                ));
+            }
+        });
+
         gameScene.show();
 
-        // Запускаем сервер в отдельном потоке
         new Thread(() -> {
             server.start();
             isServerStarted = true;
-            System.out.println("Server started successfully");
         }).start();
     }
 
     private void startClient() {
         client = new GameClient();
         if (client.connect()) {
-            // Создаем сцену с флагом isServer = false
             gameScene = new GameScene(primaryStage, false);
 
-            // Добавляем обработчик движения для клиента
             gameScene.setOnPlayerMove((x, y) -> {
                 if (client != null) {
-                    System.out.println("Client: Sending player move: " + x + ", " + y);
                     client.sendMessage(new NetworkMessage(
                             NetworkMessage.MessageType.PLAYER_MOVE,
                             new double[]{x, y}
@@ -90,54 +88,71 @@ public class Main extends Application {
                 }
             });
 
-            // Добавляем обработчик входящих сообщений
+            gameScene.setLeverCallback((x, y, state) -> {
+                if (client != null) {
+                    client.sendMessage(new NetworkMessage(
+                        NetworkMessage.MessageType.LEVER_INTERACTION,
+                        new LeverState(x, y, state)
+                    ));
+                }
+            });
+
+            gameScene.setGameStateCallback((type, finished) -> {
+                if (client != null) {
+                    client.sendMessage(new NetworkMessage(
+                        NetworkMessage.MessageType.GAME_END,
+                        new GameState(type, finished)
+                    ));
+                }
+            });
+
             client.setMessageHandler(message -> {
-                System.out.println("Client: Received message type: " + message.getType());
                 switch (message.getType()) {
                     case PLAYER_MOVE:
                         double[] position = (double[]) message.getData();
-                        System.out.println("Client: Received move: " + position[0] + ", " + position[1]);
                         Platform.runLater(() -> {
                             gameScene.updateOtherPlayerPosition(position[0], position[1]);
                         });
                         break;
 
-                    case GAME_STATE:
-                        GameServer.GameState state = (GameServer.GameState) message.getData();
-                        System.out.println("Client: Received game state");
+                    case CONNECT_ACCEPTED:
                         Platform.runLater(() -> {
-                            // Обновляем позицию сервера
-                            gameScene.updateOtherPlayerPosition(state.serverPosition[0], state.serverPosition[1]);
+                            gameScene.showGameMessage("Второй игрок подключился. Игра началась!");
                         });
                         break;
 
-                    case CONNECT_ACCEPTED:
-                        System.out.println("Client: Connection accepted by server");
+                    case GAME_END:
+                        GameState gameState = (GameState) message.getData();
+                        Platform.runLater(() -> {
+                            gameScene.updateGameState(gameState.getType(), gameState.isPlayerFinished());
+                        });
+                        break;
+
+                    case LEVER_INTERACTION:
+                        LeverState leverState = (LeverState) message.getData();
+                        Platform.runLater(() -> {
+                            gameScene.updateOtherLeverState(leverState.getX(), leverState.getY(), leverState.isActive());
+                        });
                         break;
 
                     default:
-                        System.out.println("Client: Received unknown message type: " + message.getType());
+                        System.out.println("Error" + message.getType());
                 }
             });
 
-            // Показываем сцену сразу
             gameScene.show();
-            System.out.println("Client: Game scene shown");
         } else {
-            System.out.println("Failed to connect to server");
+            System.out.println("Failed connection");
         }
     }
 
     @Override
     public void stop() {
-        System.out.println("Application stopping...");
         if (server != null) {
             server.stop();
-            System.out.println("Server stopped");
         }
         if (client != null) {
             client.disconnect();
-            System.out.println("Client disconnected");
         }
     }
 
